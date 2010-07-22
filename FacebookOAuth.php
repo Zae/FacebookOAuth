@@ -54,8 +54,7 @@ class FacebookOAuth {
     $this->client_id = $client_id;
     $this->client_secret = $client_secret;
     $this->callback_url = $callback_url;
-    $this->oauth_token = $oauth_token;
-    $this->oauth_token_secret = $oauth_token_secret;    
+    $this->access_token = $access_token;
   }
   
   /**
