@@ -50,7 +50,7 @@ class FacebookOAuth {
   /**
    * construct FacebookOAuth object
    */
-  function __construct($client_id, $client_secret, $callback_url, $access_token = NULL){
+  function __construct($client_id, $client_secret, $callback_url = NULL, $access_token = NULL){
     $this->client_id = $client_id;
     $this->client_secret = $client_secret;
     $this->callback_url = $callback_url;
@@ -65,8 +65,10 @@ class FacebookOAuth {
    */
   public function getAuthorizeUrl($scope=NULL){
     $authorizeUrl = $this->AuthorizeUrl();
-    $authorizeUrl.= "?client_id=".$this->client_id.
-                    "&redirect_uri=".$this->callback_url;
+    $authorizeUrl .= "?client_id=".$this->client_id;
+    if(!empty($this->callback_url)){
+      $authorizeUrl .= "&redirect_uri=".$this->callback_url;
+    }
     if(is_array($scope)){
       $authorizeUrl .= "&scope=".implode(",", $scope);
     }
@@ -81,10 +83,11 @@ class FacebookOAuth {
   public function getAccessToken($code){
     $accessTokenUrl = $this->AccessTokenUrl();
     $accessTokenUrl .=  "?client_id=".$this->client_id.
-                        "&redirect_uri=".$this->callback_url.
                         "&client_secret=".$this->client_secret.
                         "&code=".$code;
-    
+    if(!empty($this->callback_url)){
+      $accessTokenUrl .= "&redirect_uri=".$this->callback_url;
+    }
     $contents = $this->http($accessTokenUrl, self::$METHOD_GET);
     
     preg_match("/^access_token=(.*)$/i", $contents, $matches);
@@ -120,7 +123,7 @@ class FacebookOAuth {
   /**
    * DELETE wrapper for oAuthReqeust.
    */
-  public function delete($location){
+  public function delete($location, $postfields = array()){
     $url = $this->GraphUrl();
     $url .= $location;
     $postfields = array();

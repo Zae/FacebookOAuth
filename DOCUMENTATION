@@ -1,0 +1,62 @@
+FacebookOAuth documentation.
+
+
+GET THE CODE
+====================
+You can pull the latest development version using git:
+git clone git://github.com/Zae/FacebookOAuth.git
+
+Or you can download the latest snapshot by visiting:
+http://github.com/Zae/FacebookOAuth/archives/master
+
+
+FLOW OVERVIEW
+====================
+1) Build authorize URL for Facebook.
+2) Redirect user to authorize URL.
+3) User authorizes access and returns from Facebook.
+4) Get access token from Facebook.
+5) Query Facebook API.
+
+
+PARAMETERS
+====================
+There are a number of parameters you can modify after creating a FacebookOAuth object.
+
+Stop auto decoding JSON.
+$facebook->decode_json = FALSE;
+
+Custom useragent.
+$facebook->useragent = 'Custom useragent string';
+
+Verify Facebooks SSL certificate.
+$facebook->ssl_verifypeer = TRUE;
+
+There are several more you can find in FacebookOAuth.php.
+
+
+EXAMPLE CODE
+====================
+To use FacebookOAuth with the Facebook API you need FacebookOAuth.php and
+client credentials. You can get client credentials by registering your application at
+http://www.facebook.com/developers.
+
+Because this library is made to work very much like TwitterOAuth created by Abraham Williams,
+the examples from that project will almost work for this project with a little difference.
+
+Because Facebook uses the much simpeler OAuth 2 protocol there is no need for temporary tokens.
+
+1) Redirect the user to the Authorization URL provided by $facebook->getAuthorizeUrl() with
+optional extended permissions parameter (http://developers.facebook.com/docs/authentication/permissions)
+
+2) When the user returns to the callback page, grab the verifying code from $_REQUEST['code'] and
+use this as a parameter when callling $facebook->getAccessToken();
+The function returns this token so it can be cached or saved in a database and the $facebook object
+can directly be used to query the API.
+
+3) Query the API with the $FacebookOAuth object
+API functions $facebook->get(), $facebook->post() and $facebook->delete() are provided.
+
+REQUIREMENTS
+====================
+FacebookOAuth uses the PHP CURL extension.
