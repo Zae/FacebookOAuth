@@ -94,24 +94,49 @@ class FacebookOAuth {
   }
   
   /**
-   * GET wrapper for oAuthRequest.
+   * GET wrapper for http.
    */
-  public function get($location){
+  public function get($location, $fields = NULL, $introspection = FALSE){
     $url = $this->GraphUrl();
-    $url .= $location;
+    $url .= OAuthUtil::urlencode_rfc3986($location);
+    $params = array();
     if(!empty($this->access_token)){
-      $url .= "?access_token=".$this->access_token;
+      $params["access_token"] = $this->access_token;
     }
+    if(!empty($fields)){
+      $params["fields"] = $fields;
+    }
+    if($introspection){
+      $params["metadata"] = 1;
+    }
+    $url .= OAuthUtil::build_http_query($params);
     $response = $this->http($url, self::$METHOD_GET);
     return $this->decode_JSON ? json_decode($response) : $response;
   }
   
   /**
-   * POST wrapper for oAuthRequest.
+   * GET IDS wrapper for http.
+   *
+   *@ids comma separated list of ids
+   */
+  public function get_ids($ids){
+    $url = $this->GraphUrl();
+    $params = array();
+    $params["ids"] = $ids;
+    if(!empty($this->access_token)){
+      $params["access_token"] = $this->access_token;
+    }
+    $url .= "?".OAuthUtil::build_http_query($params);
+    $response = $this->http($url, self::$METHOD_GET);
+    return $this->decode_JSON ? json_decode($response) : $response;
+  }
+  
+  /**
+   * POST wrapper for http.
    */
   public function post($location, $postfields = array()){
     $url = $this->GraphUrl();
-    $url .= $location;
+    $url .= OAuthUtil::urlencode_rfc3986($location);
     if(!empty($this->access_token)){
       $postfields["access_token"] = $this->access_token;
     }
@@ -120,11 +145,11 @@ class FacebookOAuth {
   }
   
   /**
-   * DELETE wrapper for oAuthReqeust.
+   * DELETE wrapper for http.
    */
   public function delete($location, $postfields = array()){
     $url = $this->GraphUrl();
-    $url .= $location;
+    $url .= OAuthUtil::urlencode_rfc3986($location);
     $postfields = array();
     if(!empty($this->access_token)){
       $postfields["access_token"] = $this->access_token;
@@ -162,7 +187,7 @@ class FacebookOAuth {
       case self::$METHOD_DELETE:
         curl_setopt($handle, CURLOPT_CUSTOMREQUEST, 'DELETE');
         if (!empty($postfields)){
-          $url .= "?".implode("&", $postfields);
+          $url .= "?".OAuthUtil::build_http_query($postfields);
         }
         break;
     }
@@ -189,4 +214,44 @@ class FacebookOAuth {
   }
 }
 
+/**
+ *  OAuthUtil
+ *  Copied and adapted from http://oauth.googlecode.com/svn/code/php/
+ */
+class OAuthUtil {
+  public static function urlencode_rfc3986($input) {
+    if (is_array($input)) {
+      return array_map(array('OAuthUtil', 'urlencode_rfc3986'), $input);
+    } else if (is_scalar($input)) {
+      return str_replace(
+        '+',
+        ' ',
+        str_replace('%7E', '~', rawurlencode($input))
+      );
+    } else {
+      return '';
+    }
+  }
+  public static function build_http_query($params) {
+    if (!$params) return '';
+    // Urlencode both keys and values
+    $keys = OAuthUtil::urlencode_rfc3986(array_keys($params));
+    $values = OAuthUtil::urlencode_rfc3986(array_values($params));
+    $params = array_combine($keys, $values);
+    
+    $pairs = array();
+    foreach ($params as $parameter => $value) {
+      if (is_array($value)) {
+        foreach ($value as $duplicate_value) {
+          $pairs[] = $parameter . '=' . $duplicate_value;
+        }
+      } else {
+        $pairs[] = $parameter . '=' . $value;
+      }
+    }
+    // For each parameter, the name is separated from the corresponding value by an '=' character (ASCII code 61)
+    // Each name-value pair is separated by an '&' character (ASCII code 38)
+    return implode('&', $pairs);
+  }
+}
 ?>
