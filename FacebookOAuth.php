@@ -64,14 +64,17 @@ class FacebookOAuth {
    */
   public function getAuthorizeUrl($scope=NULL){
     $authorizeUrl = $this->AuthorizeUrl();
-    $authorizeUrl .= "?client_id=".$this->client_id;
+    $params = array();
+    $params["client_id"] = $this->client_id;
     if(!empty($this->callback_url)){
-      $authorizeUrl .= "&redirect_uri=".$this->callback_url;
+      $params["redirect_uri"] = $this->callback_url;
     }
     if(is_array($scope)){
-      $authorizeUrl .= "&scope=".implode(",", $scope);
+      $params["scope"] = implode(",", $scope);
+    }elseif($scope != NULL){
+      $params["scope"] = $scope;
     }
-    return $authorizeUrl;
+    return $authorizeUrl."?".OAuthUtil::build_http_query($params);
   }
   
   /**
@@ -81,13 +84,15 @@ class FacebookOAuth {
    */
   public function getAccessToken($code){
     $accessTokenUrl = $this->AccessTokenUrl();
-    $accessTokenUrl .=  "?client_id=".$this->client_id.
-                        "&client_secret=".$this->client_secret.
-                        "&code=".$code;
+    $params = array();
+    $params["client_id"] = $this->client_id;
+    $params["client_secret"] = $this->client_secret;
+    $params["code"] = $code;
     if(!empty($this->callback_url)){
-      $accessTokenUrl .= "&redirect_uri=".$this->callback_url;
+      $params["redirect_uri"] = $this->callback_url;
     }
-    $contents = $this->http($accessTokenUrl, self::$METHOD_GET);
+    $url = $accessTokenUrl."?".OAuthUtil::build_http_query($params);
+    $contents = $this->http($url, self::$METHOD_GET);
     
     preg_match("/^access_token=(.*)$/i", $contents, $matches);
     return $this->access_token = $matches[1];
@@ -109,7 +114,7 @@ class FacebookOAuth {
     if($introspection){
       $params["metadata"] = 1;
     }
-    $url .= OAuthUtil::build_http_query($params);
+    $url .= "?".OAuthUtil::build_http_query($params);
     $response = $this->http($url, self::$METHOD_GET);
     return $this->decode_JSON ? json_decode($response) : $response;
   }
@@ -122,7 +127,11 @@ class FacebookOAuth {
   public function get_ids($ids){
     $url = $this->GraphUrl();
     $params = array();
-    $params["ids"] = $ids;
+    if(is_array($ids)){
+      $params["ids"] = implode(",", $ids);
+    }else{
+      $params["ids"] = $ids;
+    }
     if(!empty($this->access_token)){
       $params["access_token"] = $this->access_token;
     }
