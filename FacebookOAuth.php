@@ -23,6 +23,16 @@ class FacebookOAuth {
   public $timeout = 30;
   /* Set the useragent. */
   public $useragent = "FacebookOAuth v0.0.1";
+  /* HTTP Proxy settings (will only take effect if you set 'behind_proxy' to true) */
+  public $proxy_settings = array(
+    'behind_proxy' => false,
+    'host' => '',
+    'port' => '',
+    'user' => '',
+    'pass' => '',
+    'type' => CURLPROXY_HTTP,
+    'auth' => CURLAUTH_BASIC
+  );
   /* Contains the last HTTP status code returned. */
   public $http_code;
   /* Contains the last HTTP headers returned. */
@@ -185,6 +195,14 @@ class FacebookOAuth {
     curl_setopt($handle, CURLOPT_TIMEOUT, $this->timeout);
     curl_setopt($handle, CURLOPT_USERAGENT, $this->useragent);
     curl_setopt($handle, CURLOPT_HEADERFUNCTION, array($this, 'getHeader'));
+    
+    if ($this->proxy_settings['behind_proxy']){
+      curl_setopt($ci, CURLOPT_PROXY, $this->proxy_settings['host']);
+      curl_setopt($ci, CURLOPT_PROXYPORT, $this->proxy_settings['port']);
+      curl_setopt($ci, CURLOPT_PROXYUSERPWD, "{$this->proxy_settings['user']}:{$this->proxy_settings['pass']}");
+      curl_setopt($ci, CURLOPT_PROXYTYPE, $this->proxy_settings['type']);
+      curl_setopt($ci, CURLOPT_PROXYAUTH, $this->proxy_settings['auth']);
+    }
     
     switch($method){
       case self::$METHOD_POST:
