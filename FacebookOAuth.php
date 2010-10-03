@@ -4,7 +4,7 @@
 * Ezra Pool (ezra@servicecut.nl) http://servicecut.nl
 *
 * @author Ezra Pool
-* @version 0.0.1
+* @version 0.0.4
 *
 * Adapted Abraham Williams TwitterOAuth class for use with FacebookOAuth
 */
@@ -22,7 +22,7 @@ class FacebookOAuth {
   /* Set timeout default. */
   public $timeout = 30;
   /* Set the useragent. */
-  public $useragent = "FacebookOAuth v0.0.1";
+  public $useragent = "FacebookOAuth v0.0.4 | http://github.com/Zae/FacebookOAuth";
   /* HTTP Proxy settings (will only take effect if you set 'behind_proxy' to true) */
   public $proxy_settings = array(
     'behind_proxy' => false,
@@ -53,9 +53,9 @@ class FacebookOAuth {
   /**
    * Set API URLS
    */
-  function AuthorizeUrl(){ return 'https://graph.facebook.com/oauth/authorize'; }
-  function AccessTokenUrl(){ return 'https://graph.facebook.com/oauth/access_token'; }
-  function GraphUrl(){ return 'https://graph.facebook.com/'; }  
+  const AuthorizeUrl = 'https://graph.facebook.com/oauth/authorize';
+  const AccessTokenUrl = 'https://graph.facebook.com/oauth/access_token';
+  const GraphUrl = 'https://graph.facebook.com/';
 
   /**
    * construct FacebookOAuth object
@@ -73,7 +73,6 @@ class FacebookOAuth {
    * @returns a string
    */
   public function getAuthorizeUrl($scope=NULL){
-    $authorizeUrl = $this->AuthorizeUrl();
     $params = array();
     $params["client_id"] = $this->client_id;
     if(!empty($this->callback_url)){
@@ -84,7 +83,7 @@ class FacebookOAuth {
     }elseif($scope != NULL){
       $params["scope"] = $scope;
     }
-    return $authorizeUrl."?".OAuthUtils::build_http_query($params);
+    return self::AuthorizeUrl."?".OAuthUtils::build_http_query($params);
   }
   
   /**
@@ -93,7 +92,6 @@ class FacebookOAuth {
    * @returns string access token
    */
   public function getAccessToken($code){
-    $accessTokenUrl = $this->AccessTokenUrl();
     $params = array();
     $params["client_id"] = $this->client_id;
     $params["client_secret"] = $this->client_secret;
@@ -101,7 +99,7 @@ class FacebookOAuth {
     if(!empty($this->callback_url)){
       $params["redirect_uri"] = $this->callback_url;
     }
-    $url = $accessTokenUrl."?".OAuthUtils::build_http_query($params);
+    $url = self::AccessTokenUrl."?".OAuthUtils::build_http_query($params);
     $contents = $this->http($url, self::$METHOD_GET);
     
     preg_match("/^access_token=(.*)$/i", $contents, $matches);
@@ -112,8 +110,6 @@ class FacebookOAuth {
    * GET wrapper for http.
    */
   public function get($location, $fields = NULL, $introspection = FALSE){
-    $url = $this->GraphUrl();
-    $url .= OAuthUtils::urlencode_rfc3986($location);
     $params = array();
     if(!empty($this->access_token)){
       $params["access_token"] = $this->access_token;
@@ -124,7 +120,7 @@ class FacebookOAuth {
     if($introspection){
       $params["metadata"] = 1;
     }
-    $url .= "?".OAuthUtils::build_http_query($params);
+    $url = self::GraphUrl.OAuthUtils::urlencode_rfc3986($location)."?".OAuthUtils::build_http_query($params);
     $response = $this->http($url, self::$METHOD_GET);
     return $this->decode_JSON ? json_decode($response) : $response;
   }
@@ -135,7 +131,6 @@ class FacebookOAuth {
    *@ids comma separated list of ids
    */
   public function get_ids($ids){
-    $url = $this->GraphUrl();
     $params = array();
     if(is_array($ids)){
       $params["ids"] = implode(",", $ids);
@@ -145,7 +140,7 @@ class FacebookOAuth {
     if(!empty($this->access_token)){
       $params["access_token"] = $this->access_token;
     }
-    $url .= "?".OAuthUtils::build_http_query($params);
+    $url = self::GraphUrl."?".OAuthUtils::build_http_query($params);
     $response = $this->http($url, self::$METHOD_GET);
     return $this->decode_JSON ? json_decode($response) : $response;
   }
@@ -154,8 +149,7 @@ class FacebookOAuth {
    * POST wrapper for http.
    */
   public function post($location, $postfields = array()){
-    $url = $this->GraphUrl();
-    $url .= OAuthUtils::urlencode_rfc3986($location);
+    $url = self::GraphUrl.OAuthUtils::urlencode_rfc3986($location);
     if(!empty($this->access_token)){
       $postfields["access_token"] = $this->access_token;
     }
@@ -167,8 +161,7 @@ class FacebookOAuth {
    * DELETE wrapper for http.
    */
   public function delete($location, $postfields = array()){
-    $url = $this->GraphUrl();
-    $url .= OAuthUtils::urlencode_rfc3986($location);
+    $url = self::GraphUrl.OAuthUtils::urlencode_rfc3986($location);
     $postfields = array();
     if(!empty($this->access_token)){
       $postfields["access_token"] = $this->access_token;
