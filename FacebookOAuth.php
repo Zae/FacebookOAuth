@@ -4,7 +4,7 @@
 * Ezra Pool (ezra@servicecut.nl) http://servicecut.nl
 *
 * @author Ezra Pool
-* @version 0.0.4
+* @version 0.0.5
 *
 * Adapted Abraham Williams TwitterOAuth class for use with FacebookOAuth
 */
@@ -22,7 +22,7 @@ class FacebookOAuth {
   /* Set timeout default. */
   public $timeout = 30;
   /* Set the useragent. */
-  public $useragent = "FacebookOAuth v0.0.4 | http://github.com/Zae/FacebookOAuth";
+  public $useragent = "FacebookOAuth v0.0.5 | http://github.com/Zae/FacebookOAuth";
   /* HTTP Proxy settings (will only take effect if you set 'behind_proxy' to true) */
   public $proxy_settings = array(
     'behind_proxy' => false,
@@ -83,7 +83,7 @@ class FacebookOAuth {
     }elseif($scope != NULL){
       $params["scope"] = $scope;
     }
-    return self::AuthorizeUrl."?".OAuthUtils::build_http_query($params);
+    return self::AuthorizeUrl."?".OAuthUtil::build_http_query($params);
   }
   
   /**
@@ -99,9 +99,8 @@ class FacebookOAuth {
     if(!empty($this->callback_url)){
       $params["redirect_uri"] = $this->callback_url;
     }
-    $url = self::AccessTokenUrl."?".OAuthUtils::build_http_query($params);
+    $url = self::AccessTokenUrl."?".OAuthUtil::build_http_query($params);
     $contents = $this->http($url, self::$METHOD_GET);
-    
 
     if($this->http_code == 200){
       parse_str($contents, $vars);
@@ -128,7 +127,7 @@ class FacebookOAuth {
     if($introspection){
       $params["metadata"] = 1;
     }
-    $url = self::GraphUrl.OAuthUtils::urlencode_rfc3986($location)."?".OAuthUtils::build_http_query($params);
+    $url = self::GraphUrl.OAuthUtil::urlencode_rfc3986($location)."?".OAuthUtil::build_http_query($params);
     $response = $this->http($url, self::$METHOD_GET);
     return $this->decode_JSON ? json_decode($response) : $response;
   }
@@ -148,7 +147,7 @@ class FacebookOAuth {
     if(!empty($this->access_token)){
       $params["access_token"] = $this->access_token;
     }
-    $url = self::GraphUrl."?".OAuthUtils::build_http_query($params);
+    $url = self::GraphUrl."?".OAuthUtil::build_http_query($params);
     $response = $this->http($url, self::$METHOD_GET);
     return $this->decode_JSON ? json_decode($response) : $response;
   }
@@ -157,7 +156,7 @@ class FacebookOAuth {
    * POST wrapper for http.
    */
   public function post($location, $postfields = array()){
-    $url = self::GraphUrl.OAuthUtils::urlencode_rfc3986($location);
+    $url = self::GraphUrl.OAuthUtil::urlencode_rfc3986($location);
     if(!empty($this->access_token)){
       $postfields["access_token"] = $this->access_token;
     }
@@ -169,7 +168,7 @@ class FacebookOAuth {
    * DELETE wrapper for http.
    */
   public function delete($location, $postfields = array()){
-    $url = self::GraphUrl.OAuthUtils::urlencode_rfc3986($location);
+    $url = self::GraphUrl.OAuthUtil::urlencode_rfc3986($location);
     $postfields = array();
     if(!empty($this->access_token)){
       $postfields["access_token"] = $this->access_token;
@@ -215,7 +214,7 @@ class FacebookOAuth {
       case self::$METHOD_DELETE:
         curl_setopt($handle, CURLOPT_CUSTOMREQUEST, 'DELETE');
         if (!empty($postfields)){
-          $url .= "?".OAuthUtils::build_http_query($postfields);
+          $url .= "?".OAuthUtil::build_http_query($postfields);
         }
         break;
     }
@@ -243,43 +242,58 @@ class FacebookOAuth {
 }
 
 /**
- *  OAuthUtils
+ *  OAuthUtil
  *  Copied and adapted from http://oauth.googlecode.com/svn/code/php/
+ * 
+ * Creates the needed functions if the full OAuthUtil class isn't loaded.
  */
-class OAuthUtils {
-  public static function urlencode_rfc3986($input) {
-    if (is_array($input)) {
-      return array_map(array('OAuthUtils', 'urlencode_rfc3986'), $input);
-    } else if (is_scalar($input)) {
-      return str_replace(
-        '+',
-        ' ',
-        str_replace('%7E', '~', rawurlencode($input))
-      );
-    } else {
-      return '';
-    }
-  }
-  public static function build_http_query($params) {
-    if (!$params) return '';
-    // Urlencode both keys and values
-    $keys = OAuthUtils::urlencode_rfc3986(array_keys($params));
-    $values = OAuthUtils::urlencode_rfc3986(array_values($params));
-    $params = array_combine($keys, $values);
-    
-    $pairs = array();
-    foreach ($params as $parameter => $value) {
-      if (is_array($value)) {
-        foreach ($value as $duplicate_value) {
-          $pairs[] = $parameter . '=' . $duplicate_value;
-        }
+if(!class_exists('OAuthUtil')){
+  
+  class OAuthUtil {
+    public static function urlencode_rfc3986($input) {
+      if (is_array($input)) {
+        return array_map(array('OAuthUtil', 'urlencode_rfc3986'), $input);
+      } else if (is_scalar($input)) {
+        return str_replace(
+          '+',
+          ' ',
+          str_replace('%7E', '~', rawurlencode($input))
+        );
       } else {
-        $pairs[] = $parameter . '=' . $value;
+        return '';
       }
     }
-    // For each parameter, the name is separated from the corresponding value by an '=' character (ASCII code 61)
-    // Each name-value pair is separated by an '&' character (ASCII code 38)
-    return implode('&', $pairs);
+    public static function build_http_query($params) {
+      if (!$params) return '';
+
+      // Urlencode both keys and values
+      $keys = OAuthUtil::urlencode_rfc3986(array_keys($params));
+      $values = OAuthUtil::urlencode_rfc3986(array_values($params));
+      $params = array_combine($keys, $values);
+
+      // Parameters are sorted by name, using lexicographical byte value ordering.
+      // Ref: Spec: 9.1.1 (1)
+      uksort($params, 'strcmp');
+
+      $pairs = array();
+      foreach ($params as $parameter => $value) {
+        if (is_array($value)) {
+          // If two or more parameters share the same name, they are sorted by their value
+          // Ref: Spec: 9.1.1 (1)
+          // June 12th, 2010 - changed to sort because of issue 164 by hidetaka
+          sort($value, SORT_STRING);
+          foreach ($value as $duplicate_value) {
+            $pairs[] = $parameter . '=' . $duplicate_value;
+          }
+        } else {
+          $pairs[] = $parameter . '=' . $value;
+        }
+      }
+      // For each parameter, the name is separated from the corresponding value by an '=' character (ASCII code 61)
+      // Each name-value pair is separated by an '&' character (ASCII code 38)
+      return implode('&', $pairs);
+    }
   }
+  
 }
 ?>
