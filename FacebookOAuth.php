@@ -56,6 +56,7 @@ class FacebookOAuth {
   const AuthorizeUrl = 'https://graph.facebook.com/oauth/authorize';
   const AccessTokenUrl = 'https://graph.facebook.com/oauth/access_token';
   const GraphUrl = 'https://graph.facebook.com/';
+  const ApiUrl = 'https://api.facebook.com/method/';
 
   /**
    * construct FacebookOAuth object
@@ -128,6 +129,25 @@ class FacebookOAuth {
       $params["metadata"] = 1;
     }
     $url = self::GraphUrl.OAuthUtil::urlencode_rfc3986($location)."?".OAuthUtil::build_http_query($params);
+    $response = $this->http($url, self::$METHOD_GET);
+    return $this->decode_JSON ? json_decode($response) : $response;
+  }
+  
+  /**
+   * Method to do FQL queries in the graph.
+   * @param string $query The query to be performed.
+   * @return mixed The results from the query.
+   * 
+   * @since 0.0.5
+   */
+  public function fql($query){
+    $params = array();
+    $params['format'] = 'json';
+    $params['query'] = $query;
+    if(!empty($this->access_token)){
+      $params["access_token"] = $this->access_token;
+    }
+    $url = self::ApiUrl.'fql.query?'.OAuthUtil::build_http_query($params);
     $response = $this->http($url, self::$METHOD_GET);
     return $this->decode_JSON ? json_decode($response) : $response;
   }
