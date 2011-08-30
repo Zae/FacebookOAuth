@@ -43,7 +43,7 @@ class FacebookOAuth {
   public $http_header = array();
   
   /* Variables used internally by the class and subclasses */
-  protected $client_id, $client_secret, $access_token;
+  protected $client_id, $client_secret, $access_token, $expires;
   protected $callback_url;
   
   protected static $METHOD_GET = "GET";
@@ -89,7 +89,7 @@ class FacebookOAuth {
   /**
    * Exchange verify code for an access token
    *
-   * @returns string access token
+   * @returns mixes On success it returns access_token and without offline_access also expires, On error the error message.
    */
   public function getAccessToken($code){
     $params = array();
@@ -102,8 +102,16 @@ class FacebookOAuth {
     $url = self::AccessTokenUrl."?".OAuthUtils::build_http_query($params);
     $contents = $this->http($url, self::$METHOD_GET);
     
-    preg_match("/^access_token=(.*)$/i", $contents, $matches);
-    return $this->access_token = $matches[1];
+
+    if($this->http_code == 200){
+      parse_str($contents, $vars);
+      $this->access_token = $vars['access_token'];
+      if(!empty($vars['expires'])) $this->expires = (time() + $vars['expires']);
+      return $vars;
+    }
+
+    //if the http status is not 200 OK, return the content to see the errors.
+    return $this->decode_JSON ? json_decode($contents) : $contents;
   }
   
   /**
