@@ -4,7 +4,7 @@
 * Ezra Pool (ezra@servicecut.nl) http://servicecut.nl
 *
 * @author Ezra Pool
-* @version 0.0.5
+* @version 0.0.6
 *
 * Adapted Abraham Williams TwitterOAuth class for use with FacebookOAuth
 */
@@ -22,7 +22,7 @@ class FacebookOAuth {
   /* Set timeout default. */
   public $timeout = 30;
   /* Set the useragent. */
-  public $useragent = "FacebookOAuth v0.0.5 | http://github.com/Zae/FacebookOAuth";
+  public $useragent = "FacebookOAuth v0.0.6 | http://github.com/Zae/FacebookOAuth";
   /* HTTP Proxy settings (will only take effect if you set 'behind_proxy' to true) */
   public $proxy_settings = array(
     'behind_proxy' => false,
@@ -258,6 +258,50 @@ class FacebookOAuth {
       $this->http_header[$key] = $value;
     }
     return strlen($header);
+  }
+  
+  /**
+   * Helper method to parse signed requests from facebook.
+   * @param string $signed_request The request to be parsed
+   * @param string $secret OPTIONAL, will use the client_secret set in the constructor if empty.
+   * @return null/mixed null on error else the data will be returned.
+   * 
+   * @uses hash_hmac, base64_url_decode, json_decode
+   * 
+   * @since 0.0.6
+   */
+  public function parse_signed_request($signed_request, $secret=null) {
+    $secret = empty($secret) ? $this->secret : $secret;
+    list($encoded_sig, $payload) = explode('.', $signed_request, 2);
+
+    // decode the data
+    $sig = $this->base64_url_decode($encoded_sig);
+    $data = json_decode($this->base64_url_decode($payload), true);
+
+    if (strtoupper($data['algorithm']) !== 'HMAC-SHA256') {
+      error_log('Unknown algorithm. Expected HMAC-SHA256');
+      return null;
+    }
+
+    // check sig
+    $expected_sig = hash_hmac('sha256', $payload, $secret, $raw = true);
+    if ($sig !== $expected_sig) {
+      error_log('Bad Signed JSON signature!');
+      return null;
+    }
+
+    return $data;
+  }
+
+  /**
+   * Method to decode the request string.
+   * @param mixed $input The request string
+   * @return mixed The decoded data
+   * 
+   * @since 0.0.6
+   */
+  protected function base64_url_decode($input) {
+    return base64_decode(strtr($input, '-_', '+/'));
   }
 }
 
